@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+  web:
+    image: vote-test-01_web:latest  # Usa la imagen correspondiente
+    ports:
+      - "80:5000"
+    networks:
+      - frontend 
+      - backend # Conectarse solo a la red frontend
+    depends_on:
+      - redis
+      - worker
+    environment:
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+
+  redis:
+    image: redis:7.0
+    expose:
+      - "6379"
+    networks:
+      - backend  # Conectarse solo a la red backend
+
+  db:
+    image: postgres:15
+    networks:
+      - backend  # Conectarse solo a la red backend
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: voting_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-scripts/init.sql:/docker-entrypoint-initdb.d/init.sql   
+
+
+
+  worker:
+    image: vote-test-01_worker:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - db
+    networks:
+      - backend  # Conectarse solo a la red backend
+
+  result:
+    image: vote-test-01_result:latest
+    ports:
+      - "3000:3000"
+    networks:
+      - frontend  # Conectarse a la red frontend
+      - backend  # También puede conectarse a backend
+
+networks:
+  frontend:  # Red para el frontend
+  backend:  # Red para el backend

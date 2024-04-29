@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+
+  web:
+    build: ./vote
+    ports:
+      - "80:5000"
+    depends_on:
+      - redis
+      - worker
+    environment:
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+
+  redis:
+    image: redis:7.0
+    expose:
+      - "6379"
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: voting_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  worker:
+    build:
+      context: ./worker
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - db
+      
+  result:
+    build:
+      context: ./result
+    ports:
+      - "3000:3000"
+    depends_on:
+      - worker
+      - db
